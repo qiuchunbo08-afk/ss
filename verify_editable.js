@@ -111,6 +111,38 @@ el('loginPass').value = 'kitchen123';
 sandbox.login();
 check('kitchen login hides admin nav', navAdmin.style.display === 'none');
 
+// 6) FI 拒绝发票并填写原因（弹窗确认）
+el('loginUser').value = 'admin';
+el('loginPass').value = 'admin123';
+sandbox.login();
+sandbox.rejectInvoice('INV-001');
+el('reasonText').value = 'Invoice amount mismatch';
+sandbox.confirmReason();
+let s = JSON.parse(store['sheepsheep_erp_db']);
+check('invoice rejected with reason', s.invoices.find(i => i.id === 'INV-001').status === 'cancelled' && s.invoices.find(i => i.id === 'INV-001').reason === 'Invoice amount mismatch');
+check('reason shown in invoice table', el('invoiceBody').innerHTML.includes('Invoice amount mismatch'));
+
+// 7) 取消订单并填原因
+sandbox.cancelOrder('ORD-003');
+el('reasonText').value = 'Customer requested cancellation';
+sandbox.confirmReason();
+s = JSON.parse(store['sheepsheep_erp_db']);
+check('order cancelled with reason', s.orders.find(o => o.id === 'ORD-003').status === 'cancelled' && s.orders.find(o => o.id === 'ORD-003').reason === 'Customer requested cancellation');
+check('reason shown in order table', el('ordersBody').innerHTML.includes('Customer requested cancellation'));
+
+// 8) 新增员工（表单弹窗）
+el('empNewName').value = 'Cook Wu';
+el('empNewRole').value = 'Cook';
+el('empNewDept').value = 'Kitchen';
+el('empNewWage').value = '14';
+el('empNewHours').value = '180';
+sandbox.saveNewEmployee();
+s = JSON.parse(store['sheepsheep_erp_db']);
+check('employee added via form', s.employees.some(e => e.name === 'Cook Wu' && e.role === 'Cook'));
+
+// 9) BOM 动态渲染
+check('BOM rendered from products', el('bomBody').innerHTML.includes('Classic Burger') && el('bomBody').innerHTML.includes('(+Cheese 1)'));
+
 console.log('PASS:', pass.length, '| FAIL:', fail.length);
 if (fail.length) { console.log('FAILED:', fail); process.exit(1); }
 console.log('OK - editable page smoke test passed');

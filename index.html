@@ -244,11 +244,7 @@ td input.inline-input { vertical-align: middle; }
           <thead>
             <tr><th>Burger</th><th>Bun</th><th>Patty</th><th>Vegetable</th><th>Sauce</th></tr>
           </thead>
-          <tbody>
-            <tr><td>Classic Burger</td><td>1</td><td>1</td><td>50g</td><td>20g</td></tr>
-            <tr><td>Cheese Burger</td><td>1</td><td>1</td><td>50g</td><td>20g</td></tr>
-            <tr><td>Double Burger</td><td>1</td><td>2</td><td>80g</td><td>30g</td></tr>
-          </tbody>
+          <tbody id="bomBody"></tbody>
         </table>
       </div>
     </div>
@@ -327,7 +323,7 @@ td input.inline-input { vertical-align: middle; }
       <div class="table-container">
         <div class="table-header">
           <h3>Employee Roster (HCM)</h3>
-          <button class="btn btn-primary" onclick="alert('Add employee form - demo')">+ Add Employee</button>
+          <button class="btn btn-primary" onclick="openEmployeeModal()">+ Add Employee</button>
         </div>
         <table>
           <thead>
@@ -510,6 +506,52 @@ td input.inline-input { vertical-align: middle; }
   </div>
 </div>
 
+<!-- Add Employee Modal -->
+<div class="modal-overlay" id="empModal">
+  <div class="modal">
+    <h3>Add New Employee</h3>
+    <div class="form-group">
+      <label>Name</label>
+      <input type="text" id="empNewName" placeholder="e.g. Cook Wu">
+    </div>
+    <div class="form-group">
+      <label>Role</label>
+      <input type="text" id="empNewRole" placeholder="e.g. Cook">
+    </div>
+    <div class="form-group">
+      <label>Department</label>
+      <input type="text" id="empNewDept" placeholder="e.g. Kitchen">
+    </div>
+    <div class="form-group">
+      <label>Hourly Wage ($)</label>
+      <input type="number" id="empNewWage" value="14" min="0">
+    </div>
+    <div class="form-group">
+      <label>Monthly Hours</label>
+      <input type="number" id="empNewHours" value="176" min="0">
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('empModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveNewEmployee()">Add Employee</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reason Modal: 拒绝/取消时填写原因 -->
+<div class="modal-overlay" id="reasonModal">
+  <div class="modal">
+    <h3 id="reasonTitle">Reason</h3>
+    <div class="form-group">
+      <label>Reason</label>
+      <textarea id="reasonText" rows="3" placeholder="Please enter the reason..."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeReasonModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmReason()">Confirm</button>
+    </div>
+  </div>
+</div>
+
 <script src="database.js"></script>
 <script>
 // 数据库代码已独立提取到 database.js（getDB / saveDB / 种子数据）
@@ -564,6 +606,7 @@ function renderAll() {
   renderPurchase();
   renderInvoices();
   renderCost();
+  renderBom();
   renderEmployees();
   if (currentUser && currentUser.role === 'Administrator') renderAdmin();
 }
@@ -580,7 +623,7 @@ function renderDashboard() {
 
   // Recent orders
   document.getElementById('recentOrdersBody').innerHTML = db.orders.slice(0, 5).map(o => `
-    <tr><td>${o.id}</td><td>${o.customer}</td><td>${formatItems(o.items)}</td><td>$${o.total.toFixed(2)}</td><td>${statusBadge(o.status)}</td></tr>
+    <tr><td>${o.id}</td><td>${o.customer}</td><td>${formatItems(o.items)}</td><td>$${o.total.toFixed(2)}</td><td>${statusBadge(o.status)}${o.reason ? `<br><small style="color:#e74c3c">✗ ${o.reason}</small>` : ''}</td></tr>
   `).join('');
 
   // Sales chart
@@ -614,10 +657,11 @@ function renderOrders() {
       <td>${o.id}</td><td>${o.customer}<br><small style="color:#999">${o.channel}</small></td>
       <td>${formatItems(o.items)}</td>
       <td>$${o.total.toFixed(2)}</td>
-      <td>${statusBadge(o.status)}</td>
+      <td>${statusBadge(o.status)}${o.reason ? `<br><small style="color:#e74c3c">✗ ${o.reason}</small>` : ''}</td>
       <td>
         ${o.status === 'pending' ? `<button class="btn btn-sm btn-success" onclick="approveOrder('${o.id}')">Approve</button>` : ''}
         ${o.status === 'processing' ? `<button class="btn btn-sm btn-primary" onclick="completeOrder('${o.id}')">Complete</button>` : ''}
+        ${(o.status === 'pending' || o.status === 'processing') ? `<button class="btn btn-sm btn-danger" onclick="cancelOrder('${o.id}')">Cancel</button>` : ''}
       </td>
     </tr>
   `).join('');
@@ -628,11 +672,12 @@ function renderProduction() {
   document.getElementById('productionBody').innerHTML = db.production.map(p => `
     <tr>
       <td>${p.id}</td><td>${p.burger}</td><td>${p.qty}</td>
-      <td>${statusBadge(p.status)}</td>
+      <td>${statusBadge(p.status)}${p.reason ? `<br><small style="color:#e74c3c">✗ ${p.reason}</small>` : ''}</td>
       <td>${p.materialCheck === 'ok' ? '<span class="badge badge-ok">Sufficient</span>' : '<span class="badge badge-low">Low Stock</span>'}</td>
       <td>
         ${p.status === 'pending' ? `<button class="btn btn-sm btn-primary" onclick="startProduction('${p.id}')">Start</button>` : ''}
         ${p.status === 'processing' ? `<button class="btn btn-sm btn-success" onclick="finishProduction('${p.id}')">Finish</button>` : ''}
+        ${p.status === 'pending' ? `<button class="btn btn-sm btn-danger" onclick="cancelProduction('${p.id}')">Cancel</button>` : ''}
       </td>
     </tr>
   `).join('');
@@ -657,9 +702,10 @@ function renderPurchase() {
   document.getElementById('purchaseBody').innerHTML = db.purchaseOrders.map(p => `
     <tr>
       <td>${p.id}</td><td>${p.supplier}</td><td>${p.items}</td>
-      <td>$${p.total.toFixed(2)}</td><td>${statusBadge(p.status)}</td>
+      <td>$${p.total.toFixed(2)}</td><td>${statusBadge(p.status)}${p.reason ? `<br><small style="color:#e74c3c">✗ ${p.reason}</small>` : ''}</td>
       <td>
         ${p.status === 'approved' ? `<button class="btn btn-sm btn-success" onclick="receiveGoods('${p.id}')">Goods Receipt</button>` : ''}
+        ${(p.status === 'pending' || p.status === 'approved') ? `<button class="btn btn-sm btn-danger" onclick="cancelPO('${p.id}')">Cancel</button>` : ''}
       </td>
     </tr>
   `).join('');
@@ -670,7 +716,7 @@ function renderInvoices() {
   document.getElementById('invoiceBody').innerHTML = db.invoices.map(inv => `
     <tr>
       <td>${inv.id}</td><td>${inv.type}</td><td>${inv.party}</td>
-      <td>$${inv.amount.toFixed(2)}</td><td>${statusBadge(inv.status)}</td>
+      <td>$${inv.amount.toFixed(2)}</td><td>${statusBadge(inv.status)}${inv.reason ? `<br><small style="color:#e74c3c">✗ ${inv.reason}</small>` : ''}</td>
       <td>
         ${inv.status === 'pending' ? `<button class="btn btn-sm btn-success" onclick="approveInvoice('${inv.id}')">Approve</button>
         <button class="btn btn-sm btn-danger" onclick="rejectInvoice('${inv.id}')">Reject</button>` : ''}
@@ -716,6 +762,14 @@ function renderCost() {
       <td style="color:#27ae60">$${c.profit.toFixed(2)}</td>
       <td><span class="badge badge-ok">${c.margin.toFixed(1)}%</span></td>
     </tr>`;
+  }).join('');
+}
+
+function renderBom() {
+  document.getElementById('bomBody').innerHTML = getProducts().map(p => {
+    const b = p.bom || {};
+    const sauceCell = `${b.Sauce || 0}${b.Cheese ? ` (+Cheese ${b.Cheese})` : ''}`;
+    return `<tr><td>${p.name}</td><td>${b.Bun || 0}</td><td>${b.Patty || 0}</td><td>${b.Vegetable || 0}</td><td>${sauceCell}</td></tr>`;
   }).join('');
 }
 
@@ -896,9 +950,70 @@ function approveInvoice(id) {
 }
 
 function rejectInvoice(id) {
+  openReasonModal('Reject Invoice ' + id, reason => {
+    const db = getDB();
+    const inv = db.invoices.find(i => i.id === id);
+    if (inv) { inv.status = 'cancelled'; inv.reason = reason; saveDB(db); renderAll(); }
+  });
+}
+
+function cancelOrder(id) {
+  openReasonModal('Cancel Order ' + id, reason => {
+    const db = getDB();
+    const order = db.orders.find(o => o.id === id);
+    if (order) { order.status = 'cancelled'; order.reason = reason; saveDB(db); renderAll(); }
+  });
+}
+
+function cancelProduction(id) {
+  openReasonModal('Cancel Production ' + id, reason => {
+    const db = getDB();
+    const p = db.production.find(x => x.id === id);
+    if (p) { p.status = 'cancelled'; p.reason = reason; saveDB(db); renderAll(); }
+  });
+}
+
+function cancelPO(id) {
+  openReasonModal('Cancel Purchase Order ' + id, reason => {
+    const db = getDB();
+    const po = db.purchaseOrders.find(p => p.id === id);
+    if (po) { po.status = 'cancelled'; po.reason = reason; saveDB(db); renderAll(); }
+  });
+}
+
+// ============ Reason Modal（拒绝/取消原因） ============
+let reasonCallback = null;
+function openReasonModal(title, cb) {
+  reasonCallback = cb;
+  document.getElementById('reasonTitle').textContent = title;
+  document.getElementById('reasonText').value = '';
+  openModal('reasonModal');
+}
+function closeReasonModal() { reasonCallback = null; closeModal('reasonModal'); }
+function confirmReason() {
+  const r = document.getElementById('reasonText').value.trim();
+  if (!r) { alert('Please enter the reason first!'); return; }
+  closeModal('reasonModal');
+  const cb = reasonCallback; reasonCallback = null;
+  if (cb) cb(r);
+}
+
+// ============ HCM: 新增员工（表单） ============
+function openEmployeeModal() { openModal('empModal'); }
+function saveNewEmployee() {
   const db = getDB();
-  const inv = db.invoices.find(i => i.id === id);
-  if (inv) { inv.status = 'cancelled'; saveDB(db); renderAll(); }
+  const name = document.getElementById('empNewName').value.trim();
+  if (!name) { alert('Please enter employee name!'); return; }
+  const role = document.getElementById('empNewRole').value.trim() || 'Staff';
+  const dept = document.getElementById('empNewDept').value.trim() || 'Kitchen';
+  const wage = parseFloat(document.getElementById('empNewWage').value) || 0;
+  const hours = parseFloat(document.getElementById('empNewHours').value) || 0;
+  const id = 'E' + String(db.employees.length + 1).padStart(3, '0');
+  db.employees.push({ id, name, role, dept, wage, hours, status: 'Active' });
+  saveDB(db);
+  closeModal('empModal');
+  renderAll();
+  alert(`Employee ${id} "${name}" added.`);
 }
 
 // ============ Data Admin: 直接在页面修改数据 ============
@@ -953,26 +1068,26 @@ function renderAdmin() {
   // 订单（状态可改）
   document.getElementById('adminOrdersBody').innerHTML = db.orders.map((o, idx) => `
     <tr><td>${o.id}</td><td>${o.customer}</td><td>${formatItems(o.items)}</td><td>$${o.total.toFixed(2)}</td>
-      <td><select class="inline-input" id="ord-status-${idx}">${statusOptions(o.status)}</select></td>
+      <td><select class="inline-input" id="ord-status-${idx}">${statusOptions(o.status)}</select>${o.reason ? `<br><small style="color:#e74c3c">✗ ${o.reason}</small>` : ''}</td>
       <td><button class="btn btn-sm btn-danger" onclick="deleteOrder(${idx})">Delete</button></td></tr>`).join('');
 
   // 生产单（数量/状态可改）
   document.getElementById('adminProductionBody').innerHTML = db.production.map((p, idx) => `
     <tr><td>${p.id}</td><td>${p.burger}</td>
       <td><input class="inline-input" id="prd-qty-${idx}" value="${p.qty}"></td>
-      <td><select class="inline-input" id="prd-status-${idx}">${statusOptions(p.status)}</select></td>
+      <td><select class="inline-input" id="prd-status-${idx}">${statusOptions(p.status)}</select>${p.reason ? `<br><small style="color:#e74c3c">✗ ${p.reason}</small>` : ''}</td>
       <td><button class="btn btn-sm btn-danger" onclick="deleteProduction(${idx})">Delete</button></td></tr>`).join('');
 
   // 采购单（状态可改）
   document.getElementById('adminPurchaseBody').innerHTML = db.purchaseOrders.map((p, idx) => `
     <tr><td>${p.id}</td><td>${p.supplier}</td><td>${p.items}</td><td>$${p.total.toFixed(2)}</td>
-      <td><select class="inline-input" id="po-status-${idx}">${statusOptions(p.status)}</select></td>
+      <td><select class="inline-input" id="po-status-${idx}">${statusOptions(p.status)}</select>${p.reason ? `<br><small style="color:#e74c3c">✗ ${p.reason}</small>` : ''}</td>
       <td><button class="btn btn-sm btn-danger" onclick="deletePO(${idx})">Delete</button></td></tr>`).join('');
 
   // 发票（状态可改）
   document.getElementById('adminInvoicesBody').innerHTML = db.invoices.map((v, idx) => `
     <tr><td>${v.id}</td><td>${v.type}</td><td>${v.party}</td><td>$${v.amount.toFixed(2)}</td>
-      <td><select class="inline-input" id="iv-status-${idx}">${statusOptions(v.status)}</select></td>
+      <td><select class="inline-input" id="iv-status-${idx}">${statusOptions(v.status)}</select>${v.reason ? `<br><small style="color:#e74c3c">✗ ${v.reason}</small>` : ''}</td>
       <td><button class="btn btn-sm btn-danger" onclick="deleteInvoice(${idx})">Delete</button></td></tr>`).join('');
 
   // 员工（可改可删）
