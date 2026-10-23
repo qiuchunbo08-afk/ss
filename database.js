@@ -55,6 +55,12 @@ function getDB() {
         { id: 'E005', name: 'Delivery Sun', role: 'Delivery Rider', dept: 'Delivery', wage: 10, hours: 180, status: 'Active' },
         { id: 'E006', name: 'Accountant Zhang', role: 'Accountant', dept: 'Finance', wage: 20, hours: 160, status: 'Active' }
       ],
+      // 产品主数据（CO 成本计算的数据源：材料成本 = BOM × 库存单价，非硬编码）
+      products: [
+        { name: 'Classic Burger', price: 8.5,  labor: 1.2, overhead: 0.8, bom: { Bun: 1, Patty: 1, Vegetable: 0.05, Sauce: 0.02 } },
+        { name: 'Cheese Burger',  price: 10.5, labor: 1.2, overhead: 0.8, bom: { Bun: 1, Patty: 1, Vegetable: 0.05, Sauce: 0.02, Cheese: 1 } },
+        { name: 'Double Burger',  price: 13.5, labor: 1.5, overhead: 1.0, bom: { Bun: 1, Patty: 2, Vegetable: 0.08, Sauce: 0.03, Cheese: 1 } }
+      ],
       nextOrderId: 4,
       nextProdId: 4,
       nextPOId: 3

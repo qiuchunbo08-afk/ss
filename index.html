@@ -102,6 +102,12 @@ tr:hover { background: #f8f9fa; }
 .bar { width: 100%; border-radius: 4px 4px 0 0; transition: height 0.3s; min-height: 4px; }
 .bar-label { font-size: 11px; color: #999; margin-top: 6px; }
 .bar-value { font-size: 11px; color: #333; margin-bottom: 4px; font-weight: 600; }
+
+/* Inline data editing (Data Admin) */
+.inline-input { width: 84px; padding: 4px 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; }
+.inline-input.wide { width: 150px; }
+td input.inline-input { vertical-align: middle; }
+.admin-tip { font-size: 12px; color: #999; margin-bottom: 12px; }
 </style>
 </head>
 <body>
@@ -135,6 +141,7 @@ tr:hover { background: #f8f9fa; }
     <a href="#" class="nav-link" data-section="fi" onclick="showSection('fi')"><span class="icon">💰</span>Finance (FI)</a>
     <a href="#" class="nav-link" data-section="co" onclick="showSection('co')"><span class="icon">📈</span>Cost (CO)</a>
     <a href="#" class="nav-link" data-section="hcm" onclick="showSection('hcm')"><span class="icon">👥</span>HR (HCM)</a>
+    <a href="#" class="nav-link" data-section="admin" onclick="showSection('admin')" style="display:none"><span class="icon">🛠️</span>Data Admin</a>
     <div class="user-info">
       <div id="currentUser">Admin</div>
       <div id="currentRole" style="color:#7f8c8d">Administrator</div>
@@ -330,6 +337,109 @@ tr:hover { background: #f8f9fa; }
         </table>
       </div>
     </div>
+
+    <!-- Data Admin: 直接在页面修改数据 -->
+    <div id="section-admin" class="section">
+      <div class="alert alert-warning">Administrator only · 修改后点保存立即生效：改任一物料单价，CO 成本/毛利自动重算（成本 = BOM × 库存单价 + 人工 + 制造费用）。</div>
+      <button class="btn btn-danger" onclick="resetDemoData()" style="margin-bottom:16px">↻ Reset Demo Data</button>
+
+      <div class="table-container" style="margin-bottom:20px">
+        <div class="table-header">
+          <h3>Products &amp; Cost — CO 数据源</h3>
+          <button class="btn btn-primary" onclick="saveProducts()">💾 Save Products</button>
+        </div>
+        <table>
+          <thead><tr><th>Burger</th><th>Selling Price $</th><th>Labor $</th><th>Overhead $</th><th>Material $ (auto)</th><th>Total $ (auto)</th><th>Margin % (auto)</th></tr></thead>
+          <tbody id="adminProductsBody"></tbody>
+        </table>
+      </div>
+
+      <div class="table-container" style="margin-bottom:20px">
+        <div class="table-header">
+          <h3>Material Inventory — MM</h3>
+          <div>
+            <button class="btn btn-success" onclick="addInventory()">+ Add Material</button>
+            <button class="btn btn-primary" onclick="saveInventoryAll()">💾 Save All</button>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>Name</th><th>Unit</th><th>In Stock</th><th>Reorder</th><th>Unit Price $</th><th></th></tr></thead>
+          <tbody id="adminInventoryBody"></tbody>
+        </table>
+      </div>
+
+      <div class="table-container" style="margin-bottom:20px">
+        <div class="table-header">
+          <h3>Users — 账号管理</h3>
+          <div>
+            <button class="btn btn-success" onclick="addUser()">+ Add User</button>
+            <button class="btn btn-primary" onclick="saveUsersAll()">💾 Save All</button>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>Username</th><th>Password</th><th>Name</th><th>Role</th><th></th></tr></thead>
+          <tbody id="adminUsersBody"></tbody>
+        </table>
+      </div>
+
+      <div class="table-container" style="margin-bottom:20px">
+        <div class="table-header">
+          <h3>Sales Orders — SD</h3>
+          <button class="btn btn-primary" onclick="saveOrdersAll()">💾 Save All</button>
+        </div>
+        <table>
+          <thead><tr><th>ID</th><th>Customer</th><th>Items</th><th>Total $</th><th>Status</th><th></th></tr></thead>
+          <tbody id="adminOrdersBody"></tbody>
+        </table>
+      </div>
+
+      <div class="table-container" style="margin-bottom:20px">
+        <div class="table-header">
+          <h3>Production Orders — PP</h3>
+          <button class="btn btn-primary" onclick="saveProductionAll()">💾 Save All</button>
+        </div>
+        <table>
+          <thead><tr><th>ID</th><th>Burger</th><th>Qty</th><th>Status</th><th></th></tr></thead>
+          <tbody id="adminProductionBody"></tbody>
+        </table>
+      </div>
+
+      <div class="table-container" style="margin-bottom:20px">
+        <div class="table-header">
+          <h3>Purchase Orders — MM</h3>
+          <button class="btn btn-primary" onclick="savePurchaseAll()">💾 Save All</button>
+        </div>
+        <table>
+          <thead><tr><th>ID</th><th>Supplier</th><th>Items</th><th>Total $</th><th>Status</th><th></th></tr></thead>
+          <tbody id="adminPurchaseBody"></tbody>
+        </table>
+      </div>
+
+      <div class="table-container" style="margin-bottom:20px">
+        <div class="table-header">
+          <h3>Invoices — FI</h3>
+          <button class="btn btn-primary" onclick="saveInvoicesAll()">💾 Save All</button>
+        </div>
+        <table>
+          <thead><tr><th>ID</th><th>Type</th><th>Party</th><th>Amount $</th><th>Status</th><th></th></tr></thead>
+          <tbody id="adminInvoicesBody"></tbody>
+        </table>
+      </div>
+
+      <div class="table-container">
+        <div class="table-header">
+          <h3>Employees — HCM</h3>
+          <div>
+            <button class="btn btn-success" onclick="addEmployee()">+ Add Employee</button>
+            <button class="btn btn-primary" onclick="saveEmployeesAll()">💾 Save All</button>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>ID</th><th>Name</th><th>Role</th><th>Dept</th><th>Wage $/hr</th><th>Hours</th><th>Status</th><th></th></tr></thead>
+          <tbody id="adminEmployeesBody"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -417,6 +527,7 @@ function login() {
     document.getElementById('currentRole').textContent = user.role;
     document.getElementById('loginPage').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
+    document.querySelector('.nav-link[data-section="admin"]').style.display = (user.role === 'Administrator') ? 'block' : 'none';
     renderAll();
   } else {
     alert('Invalid username or password!');
@@ -431,6 +542,7 @@ function logout() {
 
 // ============ Navigation ============
 function showSection(name) {
+  if (name === 'admin' && (!currentUser || currentUser.role !== 'Administrator')) { alert('Administrator only!'); return; }
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.getElementById('section-' + name).classList.add('active');
   document.querySelectorAll('.nav-link').forEach(a => a.classList.remove('active'));
@@ -438,7 +550,7 @@ function showSection(name) {
   const titles = {
     dashboard: 'Dashboard', sd: 'Sales & Distribution (SD)', pp: 'Production Planning (PP)',
     mm: 'Materials Management (MM)', fi: 'Financial Accounting (FI)',
-    co: 'Controlling (CO)', hcm: 'Human Capital Management (HCM)'
+    co: 'Controlling (CO)', hcm: 'Human Capital Management (HCM)', admin: 'Data Admin (直接修改数据)'
   };
   document.getElementById('pageTitle').textContent = titles[name] || name;
 }
@@ -453,6 +565,7 @@ function renderAll() {
   renderInvoices();
   renderCost();
   renderEmployees();
+  if (currentUser && currentUser.role === 'Administrator') renderAdmin();
 }
 
 function renderDashboard() {
@@ -481,13 +594,14 @@ function renderDashboard() {
     </div>
   `).join('');
 
-  // Profit chart
-  const profitData = [55, 62, 48];
-  const labels = ['Classic', 'Cheese', 'Double'];
+  // Profit chart (动态：按产品主数据实时计算，不再硬编码)
+  const profitData = getProducts().map(p => Math.max(0, productCost(p).margin));
+  const labels = getProducts().map(p => p.name.split(' ')[0]);
+  const maxP = Math.max(...profitData, 1);
   document.getElementById('profitChart').innerHTML = profitData.map((v, i) => `
     <div class="bar-item">
-      <div class="bar-value">${v}%</div>
-      <div class="bar" style="height:${(v/70)*140}px;background:#27ae60"></div>
+      <div class="bar-value">${v.toFixed(1)}%</div>
+      <div class="bar" style="height:${(v/maxP)*140}px;background:#27ae60"></div>
       <div class="bar-label">${labels[i]}</div>
     </div>
   `).join('');
@@ -565,22 +679,42 @@ function renderInvoices() {
   `).join('');
 }
 
+// ============ CO: 成本计算（动态，非硬编码） ============
+const DEFAULT_PRODUCTS = [
+  { name: 'Classic Burger', price: 8.5,  labor: 1.2, overhead: 0.8, bom: { Bun: 1, Patty: 1, Vegetable: 0.05, Sauce: 0.02 } },
+  { name: 'Cheese Burger',  price: 10.5, labor: 1.2, overhead: 0.8, bom: { Bun: 1, Patty: 1, Vegetable: 0.05, Sauce: 0.02, Cheese: 1 } },
+  { name: 'Double Burger',  price: 13.5, labor: 1.5, overhead: 1.0, bom: { Bun: 1, Patty: 2, Vegetable: 0.08, Sauce: 0.03, Cheese: 1 } }
+];
+
+function getProducts() {
+  const db = getDB();
+  if (!db.products || !db.products.length) { db.products = JSON.parse(JSON.stringify(DEFAULT_PRODUCTS)); saveDB(db); }
+  return db.products;
+}
+
+// 材料成本 = BOM × 库存单价（改物料单价，此值自动变）
+function productCost(p) {
+  const db = getDB();
+  let mat = 0;
+  for (let m in (p.bom || {})) {
+    const inv = db.inventory.find(i => i.name === m);
+    mat += (inv ? inv.price : 0) * p.bom[m];
+  }
+  const total = mat + (p.labor || 0) + (p.overhead || 0);
+  const profit = (p.price || 0) - total;
+  const margin = p.price ? (profit / p.price) * 100 : 0;
+  return { mat: +mat.toFixed(2), total: +total.toFixed(2), profit: +profit.toFixed(2), margin: +margin.toFixed(1) };
+}
+
 function renderCost() {
-  const data = [
-    { name: 'Classic Burger', price: 8.5, mat: 2.3, labor: 1.2, oh: 0.8 },
-    { name: 'Cheese Burger', price: 10.5, mat: 3.1, labor: 1.2, oh: 0.8 },
-    { name: 'Double Burger', price: 13.5, mat: 4.2, labor: 1.5, oh: 1.0 }
-  ];
-  document.getElementById('costBody').innerHTML = data.map(d => {
-    const total = d.mat + d.labor + d.oh;
-    const profit = d.price - total;
-    const margin = ((profit / d.price) * 100).toFixed(1);
+  document.getElementById('costBody').innerHTML = getProducts().map(d => {
+    const c = productCost(d);
     return `<tr>
-      <td>${d.name}</td><td>$${d.price.toFixed(2)}</td><td>$${d.mat.toFixed(2)}</td>
-      <td>$${d.labor.toFixed(2)}</td><td>$${d.oh.toFixed(2)}</td>
-      <td><b>$${total.toFixed(2)}</b></td>
-      <td style="color:#27ae60">$${profit.toFixed(2)}</td>
-      <td><span class="badge badge-ok">${margin}%</span></td>
+      <td>${d.name}</td><td>$${d.price.toFixed(2)}</td><td>$${c.mat.toFixed(2)}</td>
+      <td>$${d.labor.toFixed(2)}</td><td>$${d.overhead.toFixed(2)}</td>
+      <td><b>$${c.total.toFixed(2)}</b></td>
+      <td style="color:#27ae60">$${c.profit.toFixed(2)}</td>
+      <td><span class="badge badge-ok">${c.margin.toFixed(1)}%</span></td>
     </tr>`;
   }).join('');
 }
@@ -765,6 +899,275 @@ function rejectInvoice(id) {
   const db = getDB();
   const inv = db.invoices.find(i => i.id === id);
   if (inv) { inv.status = 'cancelled'; saveDB(db); renderAll(); }
+}
+
+// ============ Data Admin: 直接在页面修改数据 ============
+function statusOptions(s) {
+  const list = ['pending', 'processing', 'completed', 'cancelled', 'approved'];
+  return list.map(x => `<option ${x === s ? 'selected' : ''}>${x}</option>`).join('');
+}
+
+function renderAdmin() {
+  const db = getDB();
+
+  // 产品与成本（售价/人工/制造费用可改；材料与毛利自动）
+  document.getElementById('adminProductsBody').innerHTML = getProducts().map((p, i) => {
+    const c = productCost(p);
+    return `<tr>
+      <td>${p.name}</td>
+      <td><input class="inline-input" id="prod-price-${i}" value="${p.price}"></td>
+      <td><input class="inline-input" id="prod-labor-${i}" value="${p.labor}"></td>
+      <td><input class="inline-input" id="prod-oh-${i}" value="${p.overhead}"></td>
+      <td>$${c.mat.toFixed(2)}</td>
+      <td><b>$${c.total.toFixed(2)}</b></td>
+      <td><span class="badge badge-ok">${c.margin.toFixed(1)}%</span></td>
+    </tr>`;
+  }).join('');
+
+  // 物料库存（改单价 → CO 自动重算）
+  document.getElementById('adminInventoryBody').innerHTML = db.inventory.map((i, idx) => `
+    <tr>
+      <td><input class="inline-input wide" id="inv-name-${idx}" value="${i.name}"></td>
+      <td><input class="inline-input" id="inv-unit-${idx}" value="${i.unit}"></td>
+      <td><input class="inline-input" id="inv-stock-${idx}" value="${i.stock}"></td>
+      <td><input class="inline-input" id="inv-reorder-${idx}" value="${i.reorder}"></td>
+      <td><input class="inline-input" id="inv-price-${idx}" value="${i.price}"></td>
+      <td><button class="btn btn-sm btn-danger" onclick="deleteInventory(${idx})">Delete</button></td>
+    </tr>`).join('');
+
+  // 用户账号
+  document.getElementById('adminUsersBody').innerHTML = db.users.map((u, idx) => `
+    <tr>
+      <td><input class="inline-input" id="usr-username-${idx}" value="${u.username}"></td>
+      <td><input class="inline-input" id="usr-pass-${idx}" value="${u.password}"></td>
+      <td><input class="inline-input wide" id="usr-name-${idx}" value="${u.name}"></td>
+      <td><select class="inline-input wide" id="usr-role-${idx}">
+        <option ${u.role === 'Administrator' ? 'selected' : ''}>Administrator</option>
+        <option ${u.role === 'Store Manager' ? 'selected' : ''}>Store Manager</option>
+        <option ${u.role === 'Kitchen Staff' ? 'selected' : ''}>Kitchen Staff</option>
+        <option ${u.role === 'Finance' ? 'selected' : ''}>Finance</option>
+      </select></td>
+      <td><button class="btn btn-sm btn-danger" onclick="deleteUser(${idx})">Delete</button></td>
+    </tr>`).join('');
+
+  // 订单（状态可改）
+  document.getElementById('adminOrdersBody').innerHTML = db.orders.map((o, idx) => `
+    <tr><td>${o.id}</td><td>${o.customer}</td><td>${formatItems(o.items)}</td><td>$${o.total.toFixed(2)}</td>
+      <td><select class="inline-input" id="ord-status-${idx}">${statusOptions(o.status)}</select></td>
+      <td><button class="btn btn-sm btn-danger" onclick="deleteOrder(${idx})">Delete</button></td></tr>`).join('');
+
+  // 生产单（数量/状态可改）
+  document.getElementById('adminProductionBody').innerHTML = db.production.map((p, idx) => `
+    <tr><td>${p.id}</td><td>${p.burger}</td>
+      <td><input class="inline-input" id="prd-qty-${idx}" value="${p.qty}"></td>
+      <td><select class="inline-input" id="prd-status-${idx}">${statusOptions(p.status)}</select></td>
+      <td><button class="btn btn-sm btn-danger" onclick="deleteProduction(${idx})">Delete</button></td></tr>`).join('');
+
+  // 采购单（状态可改）
+  document.getElementById('adminPurchaseBody').innerHTML = db.purchaseOrders.map((p, idx) => `
+    <tr><td>${p.id}</td><td>${p.supplier}</td><td>${p.items}</td><td>$${p.total.toFixed(2)}</td>
+      <td><select class="inline-input" id="po-status-${idx}">${statusOptions(p.status)}</select></td>
+      <td><button class="btn btn-sm btn-danger" onclick="deletePO(${idx})">Delete</button></td></tr>`).join('');
+
+  // 发票（状态可改）
+  document.getElementById('adminInvoicesBody').innerHTML = db.invoices.map((v, idx) => `
+    <tr><td>${v.id}</td><td>${v.type}</td><td>${v.party}</td><td>$${v.amount.toFixed(2)}</td>
+      <td><select class="inline-input" id="iv-status-${idx}">${statusOptions(v.status)}</select></td>
+      <td><button class="btn btn-sm btn-danger" onclick="deleteInvoice(${idx})">Delete</button></td></tr>`).join('');
+
+  // 员工（可改可删）
+  document.getElementById('adminEmployeesBody').innerHTML = db.employees.map((e, idx) => `
+    <tr><td>${e.id}</td>
+      <td><input class="inline-input" id="emp-name-${idx}" value="${e.name}"></td>
+      <td><input class="inline-input" id="emp-role-${idx}" value="${e.role}"></td>
+      <td><input class="inline-input" id="emp-dept-${idx}" value="${e.dept}"></td>
+      <td><input class="inline-input" id="emp-wage-${idx}" value="${e.wage}"></td>
+      <td><input class="inline-input" id="emp-hours-${idx}" value="${e.hours}"></td>
+      <td><select class="inline-input" id="emp-status-${idx}">
+        <option ${e.status === 'Active' ? 'selected' : ''}>Active</option>
+        <option ${e.status === 'Inactive' ? 'selected' : ''}>Inactive</option>
+      </select></td>
+      <td><button class="btn btn-sm btn-danger" onclick="deleteEmployee(${idx})">Delete</button></td></tr>`).join('');
+}
+
+// ---- 保存 ----
+function saveProducts() {
+  const db = getDB();
+  getProducts().forEach((p, i) => {
+    p.price = parseFloat(document.getElementById('prod-price-' + i).value) || 0;
+    p.labor = parseFloat(document.getElementById('prod-labor-' + i).value) || 0;
+    p.overhead = parseFloat(document.getElementById('prod-oh-' + i).value) || 0;
+  });
+  saveDB(db); renderAll();
+  alert('Products saved — CO cost & margin recalculated.');
+}
+
+function saveInventoryAll() {
+  const db = getDB();
+  db.inventory.forEach((i, idx) => {
+    i.name = document.getElementById('inv-name-' + idx).value.trim() || i.name;
+    i.unit = document.getElementById('inv-unit-' + idx).value.trim() || i.unit;
+    i.stock = parseFloat(document.getElementById('inv-stock-' + idx).value) || 0;
+    i.reorder = parseFloat(document.getElementById('inv-reorder-' + idx).value) || 0;
+    i.price = parseFloat(document.getElementById('inv-price-' + idx).value) || 0;
+  });
+  saveDB(db); renderAll();
+  alert('Inventory saved — CO cost auto-recalculated from new unit prices.');
+}
+
+function saveUsersAll() {
+  const db = getDB();
+  db.users.forEach((u, idx) => {
+    u.username = document.getElementById('usr-username-' + idx).value.trim() || u.username;
+    u.password = document.getElementById('usr-pass-' + idx).value || u.password;
+    u.name = document.getElementById('usr-name-' + idx).value.trim() || u.name;
+    u.role = document.getElementById('usr-role-' + idx).value;
+  });
+  saveDB(db); renderAll();
+  alert('Users saved.');
+}
+
+function saveOrdersAll() {
+  const db = getDB();
+  db.orders.forEach((o, idx) => { o.status = document.getElementById('ord-status-' + idx).value; });
+  saveDB(db); renderAll();
+  alert('Orders saved.');
+}
+
+function saveProductionAll() {
+  const db = getDB();
+  db.production.forEach((p, idx) => {
+    p.qty = parseFloat(document.getElementById('prd-qty-' + idx).value) || 0;
+    p.status = document.getElementById('prd-status-' + idx).value;
+  });
+  saveDB(db); renderAll();
+  alert('Production saved.');
+}
+
+function savePurchaseAll() {
+  const db = getDB();
+  db.purchaseOrders.forEach((p, idx) => { p.status = document.getElementById('po-status-' + idx).value; });
+  saveDB(db); renderAll();
+  alert('Purchase orders saved.');
+}
+
+function saveInvoicesAll() {
+  const db = getDB();
+  db.invoices.forEach((v, idx) => { v.status = document.getElementById('iv-status-' + idx).value; });
+  saveDB(db); renderAll();
+  alert('Invoices saved.');
+}
+
+function saveEmployeesAll() {
+  const db = getDB();
+  db.employees.forEach((e, idx) => {
+    e.name = document.getElementById('emp-name-' + idx).value.trim() || e.name;
+    e.role = document.getElementById('emp-role-' + idx).value.trim() || e.role;
+    e.dept = document.getElementById('emp-dept-' + idx).value.trim() || e.dept;
+    e.wage = parseFloat(document.getElementById('emp-wage-' + idx).value) || 0;
+    e.hours = parseFloat(document.getElementById('emp-hours-' + idx).value) || 0;
+    e.status = document.getElementById('emp-status-' + idx).value;
+  });
+  saveDB(db); renderAll();
+  alert('Employees saved.');
+}
+
+// ---- 新增 ----
+function addInventory() {
+  const db = getDB();
+  const name = prompt('New material name:');
+  if (!name) return;
+  const unit = prompt('Unit (pcs / kg):') || 'pcs';
+  const stock = parseFloat(prompt('In stock:') || '0') || 0;
+  const reorder = parseFloat(prompt('Reorder point:') || '0') || 0;
+  const price = parseFloat(prompt('Unit price $:') || '0') || 0;
+  db.inventory.push({ name, unit, stock, reorder, price });
+  saveDB(db); renderAll();
+  alert(`Material "${name}" added.`);
+}
+
+function addUser() {
+  const db = getDB();
+  const username = prompt('New username:');
+  if (!username) return;
+  const password = prompt('Password:') || '123456';
+  const name = prompt('Display name:') || username;
+  const role = prompt('Role (Administrator / Store Manager / Kitchen Staff / Finance):') || 'Kitchen Staff';
+  db.users.push({ username, password, role, name });
+  saveDB(db); renderAll();
+  alert(`User "${username}" added.`);
+}
+
+function addEmployee() {
+  const db = getDB();
+  const name = prompt('Employee name:');
+  if (!name) return;
+  const role = prompt('Role:') || 'Staff';
+  const dept = prompt('Department:') || 'Kitchen';
+  const wage = parseFloat(prompt('Hourly wage $:') || '0') || 0;
+  const hours = parseFloat(prompt('Monthly hours:') || '0') || 0;
+  const id = 'E' + String(db.employees.length + 1).padStart(3, '0');
+  db.employees.push({ id, name, role, dept, wage, hours, status: 'Active' });
+  saveDB(db); renderAll();
+  alert(`Employee ${id} "${name}" added.`);
+}
+
+// ---- 删除 ----
+function deleteInventory(idx) {
+  if (!confirm('Delete this material?')) return;
+  const db = getDB();
+  db.inventory.splice(idx, 1);
+  saveDB(db); renderAll();
+}
+
+function deleteUser(idx) {
+  if (!confirm('Delete this user?')) return;
+  const db = getDB();
+  db.users.splice(idx, 1);
+  saveDB(db); renderAll();
+}
+
+function deleteOrder(idx) {
+  if (!confirm('Delete this order?')) return;
+  const db = getDB();
+  db.orders.splice(idx, 1);
+  saveDB(db); renderAll();
+}
+
+function deleteProduction(idx) {
+  if (!confirm('Delete this production order?')) return;
+  const db = getDB();
+  db.production.splice(idx, 1);
+  saveDB(db); renderAll();
+}
+
+function deletePO(idx) {
+  if (!confirm('Delete this purchase order?')) return;
+  const db = getDB();
+  db.purchaseOrders.splice(idx, 1);
+  saveDB(db); renderAll();
+}
+
+function deleteInvoice(idx) {
+  if (!confirm('Delete this invoice?')) return;
+  const db = getDB();
+  db.invoices.splice(idx, 1);
+  saveDB(db); renderAll();
+}
+
+function deleteEmployee(idx) {
+  if (!confirm('Delete this employee?')) return;
+  const db = getDB();
+  db.employees.splice(idx, 1);
+  saveDB(db); renderAll();
+}
+
+// ---- 重置 ----
+function resetDemoData() {
+  if (!confirm('Reset ALL demo data to initial seed? Current changes will be lost.')) return;
+  localStorage.removeItem(DB_KEY);
+  renderAll();
+  alert('Demo data reset to initial seed.');
 }
 
 // Init
